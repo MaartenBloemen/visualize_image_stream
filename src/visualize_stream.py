@@ -17,25 +17,34 @@ class StreamVisualize:
         self.save_location = save_location
 
         self.bridge = CvBridge()
-        if self.record:
-            filename = str(datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S'))
-            self.writer = cv2.VideoWriter(os.path.join(self.save_location, '{}.avi'.format(filename)),
-                                          cv2.VideoWriter_fourcc(*"MJPG"), self.fps, (1280, 720))
 
         self.image_sub = rospy.Subscriber(self.topic, Image, self.visualize)
+
+        if record:
+            self.created_recording = False
+
         rospy.spin()
 
     def visualize(self, data):
         try:
             cv_image = self.bridge.imgmsg_to_cv2(data, 'bgr8')
+            height, width, _ = cv_image.shape
         except CvBridgeError as e:
             print(e)
 
         if self.record:
+            if not self.created_recording:
+                self.created_recording = True
+                self.create_recording(width, height)
             self.writer.write(cv_image)
         cv2.imshow(self.topic, cv_image)
         if cv2.waitKey(1) == 27:
             exit(0)
+
+    def create_recording(self, width, height):
+        filename = str(datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S'))
+        self.writer = cv2.VideoWriter(os.path.join(self.save_location, '{}.avi'.format(filename)),
+                                      cv2.VideoWriter_fourcc(*"MJPG"), self.fps, (width, height))
 
 
 if __name__ == "__main__":
